@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>beamline</groupId>
 	<artifactId>conformance-behavioural-patterns</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2</version>
 
 	<properties>
 		<maven.compiler.source>11</maven.compiler.source>
@@ -26,7 +26,7 @@
 		<dependency>
 			<groupId>com.github.beamline</groupId>
 			<artifactId>framework</artifactId>
-			<version>master-SNAPSHOT</version>
+			<version>0.2.1</version>
 		</dependency>
 		<dependency>
 			<groupId>prom</groupId>

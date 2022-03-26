@@ -25,15 +25,19 @@ import org.processmining.plugins.tsml.Tsml;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import beamline.events.BEvent;
 import beamline.graphviz.Dot;
 import beamline.miners.simpleconformance.model.ConformanceTracker;
 import beamline.miners.simpleconformance.model.ExtendedCoverabilityGraph;
 import beamline.miners.simpleconformance.ui.GraphvizConverter;
 import beamline.miners.simpleconformance.utils.Pair;
 import beamline.models.algorithms.StreamMiningAlgorithm;
+import beamline.models.responses.Response;
+import beamline.miners.simpleconformance.SimpleConformance.ConformanceResponse;
 
-public class SimpleConformance extends StreamMiningAlgorithm<XTrace, Pair<Integer, String>> {
+public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse> {
 
+	private static final long serialVersionUID = -2318771541454892749L;
 	private static String JAVA_BIN = "";
 	private static String OFFLINE_PREPROCESSOR_JAR = "";
 	private static final int NUMBER_OF_OBSERVATIONS = 6 * 10;
@@ -134,9 +138,10 @@ public class SimpleConformance extends StreamMiningAlgorithm<XTrace, Pair<Intege
 	}
 
 	@Override
-	public Pair<Integer, String> ingest(XTrace event) {
-		String caseID = XConceptExtension.instance().extractName(event);
-		String activityName = XConceptExtension.instance().extractName(event.get(0));
+//	public Pair<Integer, String> ingest(XTrace event) {
+	public ConformanceResponse ingest(BEvent event) {
+		String caseID = event.getTraceName();
+		String activityName = event.getEventName();
 		
 		// calculate conformance
 		Pair<State, Integer> returned = miners.replay(caseID, activityName);
@@ -161,7 +166,7 @@ public class SimpleConformance extends StreamMiningAlgorithm<XTrace, Pair<Intege
 		}
 		prefixes.get(caseID).offer(activityName);
 		
-		return new Pair<Integer, String>(returned.getSecond(), returned.getSecond() + " - cost of executing " + activityName + " in case " + caseID);
+		return new ConformanceResponse(returned.getSecond(), returned.getSecond() + " - cost of executing " + activityName + " in case " + caseID);
 	}
 	
 //	@Override
@@ -228,6 +233,17 @@ public class SimpleConformance extends StreamMiningAlgorithm<XTrace, Pair<Intege
 //		return values;
 //	}
 	
+	static class ConformanceResponse extends Response {
+
+		private static final long serialVersionUID = -8148713756624004593L;
+		public Integer cost;
+		public String message;
+		
+		public ConformanceResponse(Integer cost, String message) {
+			this.cost = cost;
+			this.message = message;
+		}
+	}
 	
 	private class Observation implements Serializable {
 
