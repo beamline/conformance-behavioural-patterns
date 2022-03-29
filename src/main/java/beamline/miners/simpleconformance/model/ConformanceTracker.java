@@ -2,28 +2,26 @@ package beamline.miners.simpleconformance.model;
 
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Queue;
 import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.processmining.models.graphbased.directed.DirectedGraphElementWeights;
 import org.processmining.models.graphbased.directed.transitionsystem.AcceptStateSet;
 import org.processmining.models.graphbased.directed.transitionsystem.StartStateSet;
 import org.processmining.models.graphbased.directed.transitionsystem.State;
 
 import beamline.miners.simpleconformance.utils.FrequencyTimeFinitePriorityQueue;
-import beamline.miners.simpleconformance.utils.Pair;
 import beamline.miners.simpleconformance.utils.Quadruple;
-import beamline.miners.simpleconformance.utils.Triple;
 
 public class ConformanceTracker extends HashMap<String, ConformanceStatus> {
 
 	private static final long serialVersionUID = -7453522111588238137L;
-	protected Queue<String> caseIdHistory;
+	protected LinkedList<String> caseIdHistory;
 	protected ExtendedCoverabilityGraph model;
 	protected DirectedGraphElementWeights weights;
 	protected StartStateSet ss;
 	protected AcceptStateSet as;
-	protected FrequencyTimeFinitePriorityQueue<Triple<State, String, State>> topErrors;
+	protected FrequencyTimeFinitePriorityQueue<Quadruple<State, String, State, Integer>> topErrors;
 
 	protected int maxCasesToStore;
 	protected int statesToStore;
@@ -39,7 +37,7 @@ public class ConformanceTracker extends HashMap<String, ConformanceStatus> {
 			int maxCasesToStore,
 			int errorsToStore,
 			int topErrorsToStore) {
-		this.caseIdHistory = new LinkedList<String>();
+		this.caseIdHistory = new LinkedList<>();
 		this.model = model;
 		this.weights = weights;
 		this.ss = ss;
@@ -48,7 +46,7 @@ public class ConformanceTracker extends HashMap<String, ConformanceStatus> {
 		this.statesToStore = statesToStore;
 		this.costNoActivity = model.getCostActivityNotInProcess();
 		this.errorsToStore = errorsToStore;
-		this.topErrors = new FrequencyTimeFinitePriorityQueue<Triple<State, String, State>>(topErrorsToStore);
+		this.topErrors = new FrequencyTimeFinitePriorityQueue<>(topErrorsToStore);
 	}
 
 	public Set<String> getHandledCases() {
@@ -92,7 +90,7 @@ public class ConformanceTracker extends HashMap<String, ConformanceStatus> {
 		return returned;
 	}
 
-	public FrequencyTimeFinitePriorityQueue<Triple<State, String, State>> getTopErrors() {
+	public FrequencyTimeFinitePriorityQueue<Quadruple<State, String, State, Integer>> getTopErrors() {
 		return topErrors;
 	}
 	

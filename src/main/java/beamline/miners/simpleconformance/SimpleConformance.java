@@ -14,8 +14,8 @@ import java.util.HashMap;
 import java.util.Properties;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
-import org.deckfour.xes.extension.std.XConceptExtension;
-import org.deckfour.xes.model.XTrace;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.flink.configuration.Configuration;
 import org.processmining.models.connections.GraphLayoutConnection;
 import org.processmining.models.graphbased.directed.DirectedGraphElementWeights;
 import org.processmining.models.graphbased.directed.transitionsystem.AcceptStateSet;
@@ -27,13 +27,12 @@ import org.xmlpull.v1.XmlPullParserFactory;
 
 import beamline.events.BEvent;
 import beamline.graphviz.Dot;
+import beamline.miners.simpleconformance.SimpleConformance.ConformanceResponse;
 import beamline.miners.simpleconformance.model.ConformanceTracker;
 import beamline.miners.simpleconformance.model.ExtendedCoverabilityGraph;
 import beamline.miners.simpleconformance.ui.GraphvizConverter;
-import beamline.miners.simpleconformance.utils.Pair;
 import beamline.models.algorithms.StreamMiningAlgorithm;
 import beamline.models.responses.Response;
-import beamline.miners.simpleconformance.SimpleConformance.ConformanceResponse;
 
 public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse> {
 
@@ -49,12 +48,14 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 	private static int errorsToStore = 10;
 	private static int topErrorsToStore = 10;
 	
+	private File tpnFile;
 	private ConformanceTracker miners = null;
 	private CircularFifoQueue<Observation> observationsErrors = null;
 	private CircularFifoQueue<Observation> observationsProcess = null;
 	
 	private HashMap<String, CircularFifoQueue<String>> prefixes = new HashMap<String, CircularFifoQueue<String>>();
 	
+	@SuppressWarnings("unused")
 	private Dot extendedCoverabilityGraph = null;
 	
 	static {
@@ -75,7 +76,48 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 		System.out.flush();
 	}
 	
-	public void loadModel(File tpnFile) throws IOException, InterruptedException {
+	public SimpleConformance(File tpnFile) {
+		this.tpnFile = tpnFile;
+	}
+	
+	@Override
+	public void open(Configuration parameters) throws Exception {
+		super.open(parameters);
+		loadModel(tpnFile);
+	}
+
+	@Override
+	public ConformanceResponse ingest(BEvent event) {
+		String caseID = event.getTraceName();
+		String activityName = event.getEventName();
+		
+		// calculate conformance
+		Pair<State, Integer> returned = miners.replay(caseID, activityName);
+		
+		// update errors
+		if (returned.getRight() > 0) {
+			if (observationsErrors.isEmpty() || !observationsErrors.get(observationsErrors.size() - 1).incrementIfWithinTime(MILLISECONDS_BIN)) {
+				observationsErrors.offer(new Observation(1));
+			}
+		} else if (observationsErrors.isEmpty() || !observationsErrors.get(observationsErrors.size() - 1).toUpdateIfWithinTime(MILLISECONDS_BIN)) {
+			observationsErrors.offer(new Observation(0));
+		}
+		
+		// update events
+		if (observationsProcess.isEmpty() || !observationsProcess.get(observationsProcess.size() - 1).incrementIfWithinTime(MILLISECONDS_BIN)) {
+			observationsProcess.offer(new Observation(1));
+		}
+		
+		// update prefixes
+		if (!prefixes.containsKey(caseID)) {
+			prefixes.put(caseID, new CircularFifoQueue<String>(NUMBER_OF_OBSERVATIONS));
+		}
+		prefixes.get(caseID).offer(activityName);
+		
+		return new ConformanceResponse(returned.getRight(), returned.getRight() + " - cost of executing " + activityName + " in case " + caseID);
+	}
+	
+	private void loadModel(File tpnFile) throws IOException, InterruptedException {
 		File tmpCg = File.createTempFile("coverability", "cg");
 		try {
 			// calculate graph
@@ -135,38 +177,6 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 			return null;
 		}
 		return tsml;
-	}
-
-	@Override
-//	public Pair<Integer, String> ingest(XTrace event) {
-	public ConformanceResponse ingest(BEvent event) {
-		String caseID = event.getTraceName();
-		String activityName = event.getEventName();
-		
-		// calculate conformance
-		Pair<State, Integer> returned = miners.replay(caseID, activityName);
-		
-		// update errors
-		if (returned.getSecond() > 0) {
-			if (observationsErrors.isEmpty() || !observationsErrors.get(observationsErrors.size() - 1).incrementIfWithinTime(MILLISECONDS_BIN)) {
-				observationsErrors.offer(new Observation(1));
-			}
-		} else if (observationsErrors.isEmpty() || !observationsErrors.get(observationsErrors.size() - 1).toUpdateIfWithinTime(MILLISECONDS_BIN)) {
-			observationsErrors.offer(new Observation(0));
-		}
-		
-		// update events
-		if (observationsProcess.isEmpty() || !observationsProcess.get(observationsProcess.size() - 1).incrementIfWithinTime(MILLISECONDS_BIN)) {
-			observationsProcess.offer(new Observation(1));
-		}
-		
-		// update prefixes
-		if (!prefixes.containsKey(caseID)) {
-			prefixes.put(caseID, new CircularFifoQueue<String>(NUMBER_OF_OBSERVATIONS));
-		}
-		prefixes.get(caseID).offer(activityName);
-		
-		return new ConformanceResponse(returned.getSecond(), returned.getSecond() + " - cost of executing " + activityName + " in case " + caseID);
 	}
 	
 //	@Override
@@ -233,7 +243,7 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 //		return values;
 //	}
 	
-	static class ConformanceResponse extends Response {
+	public static class ConformanceResponse extends Response {
 
 		private static final long serialVersionUID = -8148713756624004593L;
 		public Integer cost;
@@ -256,13 +266,13 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 			this.obs = obs;
 		}
 		
-		public Date getTime() {
-			return time;
-		}
+//		public Date getTime() {
+//			return time;
+//		}
 		
-		public Integer getObservations() {
-			return obs;
-		}
+//		public Integer getObservations() {
+//			return obs;
+//		}
 		
 		public boolean toUpdateIfWithinTime(long windowSizeInMilliseconds) {
 			return (time.toInstant().plusMillis(windowSizeInMilliseconds).isAfter(new Date().toInstant()));

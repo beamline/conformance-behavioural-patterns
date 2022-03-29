@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.processmining.models.graphbased.directed.DirectedGraphElementWeights;
 import org.processmining.models.graphbased.directed.transitionsystem.AcceptStateSet;
 import org.processmining.models.graphbased.directed.transitionsystem.StartStateSet;
@@ -14,7 +15,6 @@ import org.processmining.models.graphbased.directed.transitionsystem.Transition;
 
 import com.google.common.collect.EvictingQueue;
 
-import beamline.miners.simpleconformance.utils.Pair;
 import beamline.miners.simpleconformance.utils.Quadruple;
 
 public class ConformanceStatus {
@@ -71,7 +71,7 @@ public class ConformanceStatus {
 
 	public Pair<State, Integer> replayEvent(String newEventName) {
 		Object usedState = null;
-		Pair<State, Integer> bestSoFar = new Pair<State, Integer>(null, Integer.MAX_VALUE);
+		Pair<State, Integer> bestSoFar = Pair.of(null, Integer.MAX_VALUE);
 
 		// try to replay the current event starting from the start states or,
 		// from the last states reached. only the configuration with lowest
@@ -82,7 +82,7 @@ public class ConformanceStatus {
 			for (Object stastStateId : ss) {
 				State state = model.getNode(stastStateId);
 				Pair<State, Integer> r = replayEventFromState(newEventName, state);
-				if (r.getSecond() < bestSoFar.getSecond()) {
+				if (r.getRight() < bestSoFar.getRight()) {
 					bestSoFar = r;
 					usedState = stastStateId;
 				}
@@ -95,7 +95,7 @@ public class ConformanceStatus {
 			Collections.reverse(l);
 			for (State state : l) {
 				Pair<State, Integer> r = replayEventFromState(newEventName, state);
-				if (r.getSecond() < bestSoFar.getSecond()) {
+				if (r.getRight() < bestSoFar.getRight()) {
 					bestSoFar = r;
 					usedState = state.getIdentifier();
 				}
@@ -103,21 +103,21 @@ public class ConformanceStatus {
 		}
 
 		// we can now "perform" the actual replay for the best configuration
-		lastStates.add(bestSoFar.getFirst());
-		totalCost += bestSoFar.getSecond();
+		lastStates.add(bestSoFar.getLeft());
+		totalCost += bestSoFar.getRight();
 
 		// log the error
-		if (bestSoFar.getSecond() > 0) {
-			lastErrors.add(new Quadruple<State, String, State, Integer>(
+		if (bestSoFar.getRight() > 0) {
+			lastErrors.add(Quadruple.of(
 					model.getNode(usedState),
 					newEventName,
-					bestSoFar.getFirst(),
-					bestSoFar.getSecond()));
-			lastError = new Quadruple<State, String, State, Integer>(
+					bestSoFar.getLeft(),
+					bestSoFar.getRight()));
+			lastError = Quadruple.of(
 					model.getNode(usedState),
 					newEventName,
-					bestSoFar.getFirst(),
-					bestSoFar.getSecond());
+					bestSoFar.getLeft(),
+					bestSoFar.getRight());
 		} else {
 			lastError = null;
 		}
@@ -131,15 +131,16 @@ public class ConformanceStatus {
 				// we just found a transition labeled as we need. if the
 				// transition has no cost associated, it means it is a "correct"
 				// transition, so default cost is set to 0
-				return new Pair<State, Integer>(t.getTarget(), weights.get(t.getSource().getIdentifier(), t.getTarget().getIdentifier(),
-						t.getIdentifier(), 0));
+				return Pair.of(
+						t.getTarget(),
+						weights.get(t.getSource().getIdentifier(), t.getTarget().getIdentifier(), t.getIdentifier(), 0));
 			}
 		}
 
 		// if we did not find any transition it means that newEventName does not
 		// belong to the alphabet of the process provided. no move from the
 		// current state, and cost as for no activity
-		return new Pair<State, Integer>(state, costNoActivity);
+		return Pair.of(state, costNoActivity);
 	}
 
 	public boolean traceReachedAcceptState() {
