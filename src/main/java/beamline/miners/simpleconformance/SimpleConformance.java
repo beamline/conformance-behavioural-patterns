@@ -114,7 +114,10 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 		}
 		prefixes.get(caseID).offer(activityName);
 		
-		return new ConformanceResponse(returned.getRight(), returned.getRight() + " - cost of executing " + activityName + " in case " + caseID);
+		return new ConformanceResponse(
+				returned.getRight(),
+				event,
+				returned.getRight() + " - cost of executing " + activityName + " in case " + caseID);
 	}
 	
 	private void loadModel(File tpnFile) throws IOException, InterruptedException {
@@ -246,12 +249,26 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 	public static class ConformanceResponse extends Response {
 
 		private static final long serialVersionUID = -8148713756624004593L;
-		public Integer cost;
-		public String message;
+		private Integer cost;
+		private BEvent lastEvent;
+		private String message;
 		
-		public ConformanceResponse(Integer cost, String message) {
+		public ConformanceResponse(Integer cost, BEvent lastEvent, String message) {
 			this.cost = cost;
+			this.lastEvent = lastEvent;
 			this.message = message;
+		}
+
+		public String getMessage() {
+			return message;
+		}
+
+		public BEvent getLastEvent() {
+			return lastEvent;
+		}
+
+		public Integer getCost() {
+			return cost;
 		}
 	}
 	
