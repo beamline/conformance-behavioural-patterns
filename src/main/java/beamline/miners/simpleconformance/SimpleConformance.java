@@ -3,6 +3,7 @@ package beamline.miners.simpleconformance;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -18,9 +19,18 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.flink.configuration.Configuration;
 import org.processmining.models.connections.GraphLayoutConnection;
 import org.processmining.models.graphbased.directed.DirectedGraphElementWeights;
+import org.processmining.models.graphbased.directed.petrinet.Petrinet;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
+import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
+import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetFactory;
 import org.processmining.models.graphbased.directed.transitionsystem.AcceptStateSet;
 import org.processmining.models.graphbased.directed.transitionsystem.StartStateSet;
 import org.processmining.models.graphbased.directed.transitionsystem.State;
+import org.processmining.models.semantics.petrinet.Marking;
+import org.processmining.plugins.pnml.base.Pnml;
+import org.processmining.plugins.pnml.importing.PnmlImportUtils;
 import org.processmining.plugins.tsml.Tsml;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -76,8 +86,17 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 		System.out.flush();
 	}
 	
-	public SimpleConformance(File tpnFile) {
-		this.tpnFile = tpnFile;
+	public SimpleConformance(File tpnFile) throws Exception {
+		this(tpnFile, true);
+	}
+	
+	public SimpleConformance(File file, boolean isTpn) throws Exception {
+		if (isTpn) {
+			this.tpnFile = file;
+		} else {
+			this.tpnFile = convertPnmlToTpm(file);
+			System.out.println("Automatically converted file " + file + " into TPN file " + tpnFile);
+		}
 	}
 	
 	@Override
@@ -118,6 +137,37 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 				returned.getRight(),
 				event,
 				returned.getRight() + " - cost of executing " + activityName + " in case " + caseID);
+	}
+	
+	private File convertPnmlToTpm(File pnmlFile) throws Exception {
+		File tpnFile = File.createTempFile("net", "tpn");
+		FileWriter tpn = new FileWriter(tpnFile);
+		PnmlImportUtils utils = new PnmlImportUtils();
+		Pnml pnml = utils.importPnmlFromStream(new FileInputStream(pnmlFile));
+		Petrinet net = PetrinetFactory.newPetrinet("");
+		Marking m = new Marking();
+		pnml.convertToNet(net, m);
+		for (Place p : net.getPlaces()) {
+			String marking = "";
+			if (m.contains(p)) {
+				marking = " init 1";
+			}
+			tpn.write("place \"" + p.getLocalID() + "\"" + marking + ";\n");
+		}
+		
+		for (Transition t : net.getTransitions()) {
+			String in = "in ";
+			for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> e : net.getInEdges(t)) {
+				in += "\"" + e.getSource().getLocalID() + "\" ";
+			}
+			String out = "out ";
+			for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> e : net.getOutEdges(t)) {
+				out += "\"" + e.getTarget().getLocalID() + "\" ";
+			}
+			tpn.write("trans \"" + t.getLocalID() + "\"~\"" + t.getLabel() + "\" " + in + out + ";\n");
+		}
+		tpn.close();
+		return tpnFile;
 	}
 	
 	private void loadModel(File tpnFile) throws IOException, InterruptedException {
