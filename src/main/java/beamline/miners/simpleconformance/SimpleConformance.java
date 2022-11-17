@@ -107,6 +107,7 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 
 	@Override
 	public ConformanceResponse ingest(BEvent event) {
+		long processTime = System.currentTimeMillis();
 		String caseID = event.getTraceName();
 		String activityName = event.getEventName();
 		
@@ -136,7 +137,8 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 		return new ConformanceResponse(
 				returned.getRight(),
 				event,
-				returned.getRight() + " - cost of executing " + activityName + " in case " + caseID);
+				returned.getRight() + " - cost of executing " + activityName + " in case " + caseID,
+				(System.currentTimeMillis() - processTime));
 	}
 	
 	private File convertPnmlToTpm(File pnmlFile) throws Exception {
@@ -302,11 +304,13 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 		private Integer cost;
 		private BEvent lastEvent;
 		private String message;
+		private long processingTime;
 		
-		public ConformanceResponse(Integer cost, BEvent lastEvent, String message) {
+		public ConformanceResponse(Integer cost, BEvent lastEvent, String message, long processingTime) {
 			this.cost = cost;
 			this.lastEvent = lastEvent;
 			this.message = message;
+			this.processingTime = processingTime;
 		}
 
 		public String getMessage() {
@@ -319,6 +323,10 @@ public class SimpleConformance extends StreamMiningAlgorithm<ConformanceResponse
 
 		public Integer getCost() {
 			return cost;
+		}
+		
+		public long getProcessingTime() {
+			return processingTime;
 		}
 	}
 	
