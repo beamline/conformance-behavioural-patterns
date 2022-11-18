@@ -26,7 +26,7 @@
 		<dependency>
 			<groupId>com.github.beamline</groupId>
 			<artifactId>framework</artifactId>
-			<version>0.2.1</version>
+			<version>7098a99679</version>
 		</dependency>
 		<dependency>
 			<groupId>prom</groupId>
@@ -61,7 +61,27 @@
 		<dependency>
 			<groupId>com.github.beamline</groupId>
 			<artifactId>simple-pnml</artifactId>
-			<version>3d3d6dbe9a</version>
+			<version>ef4d32732e</version>
+		</dependency>
+		
+		<!-- Dependencies for unfolder -->
+		<dependency>
+			<groupId>andbur</groupId>
+			<artifactId>andbur-unfolder-4</artifactId>
+			<version>4</version>
+			<scope>system</scope>
+			<systemPath>${basedir}/libs/andbur-unfolder-4.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>org.jdom</groupId>
+			<artifactId>jdom</artifactId>
+			<version>2.0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.gwt</groupId>
+			<artifactId>gwt-dev</artifactId>
+			<version>2.10.0</version>
+			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 </project>
