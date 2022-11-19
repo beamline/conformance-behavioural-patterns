@@ -7,6 +7,8 @@ import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import beamline.events.BEvent;
+
 /**
  * This class keeps track of the conformance status for a single process instance
  * 
@@ -34,7 +36,8 @@ public class LocalConformanceStatus implements Serializable {
 	 * @param newEventName the event to replay
 	 * @return
 	 */
-	public OnlineConformanceScore replayEvent(String newEventName) {
+	public OnlineConformanceScore replayEvent(BEvent event) {
+		String newEventName = event.getEventName();
 		if (lastActivityForCase != null) {
 			// this is not the first relation in the case
 			DirectFollowingRelation relation = new DirectFollowingRelation(lastActivityForCase, newEventName);
@@ -78,7 +81,7 @@ public class LocalConformanceStatus implements Serializable {
 				last.setConfidence(1d - (lms.getMinRelationsAfter(relation) / lms.getMaxOfMinRelationsAfter()));
 			}
 		}
-		last.setLastActivity(newEventName);
+		last.setLastEvent(event);
 		lastActivityForCase = newEventName;
 		refreshUpdateTime();
 		return last;

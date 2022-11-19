@@ -38,8 +38,6 @@ public class BehavioralConformance extends StreamMiningAlgorithm<OnlineConforman
 	
 	@Override
 	public OnlineConformanceScore ingest(BEvent event) {
-		String caseId = event.getTraceName();
-		String activityName = event.getEventName();
-		return lct.replayEvent(caseId, activityName);
+		return lct.replayEvent(event);
 	}
 }

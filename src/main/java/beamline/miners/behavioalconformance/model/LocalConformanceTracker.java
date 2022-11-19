@@ -6,6 +6,8 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 
+import beamline.events.BEvent;
+
 /**
  * This class keeps track of the conformance status of a whole stream, by dispatching the events based on their
  * process instance. Also it keeps track of the different cases and is in charge of removing old ones.
@@ -37,13 +39,15 @@ public class LocalConformanceTracker extends HashMap<String, LocalConformanceSta
 	 * @param newEventName
 	 * @return
 	 */
-	public OnlineConformanceScore replayEvent(String caseId, String newEventName) {
+	public OnlineConformanceScore replayEvent(BEvent event) {
 		double time = System.nanoTime();
+		String caseId = event.getTraceName();
+		String newEventName = event.getEventName();
 		OnlineConformanceScore currentScore;
 		
 		if (containsKey(caseId)) {
 			// now we can perform the replay
-			currentScore = get(caseId).replayEvent(newEventName);
+			currentScore = get(caseId).replayEvent(event);
 			// need to refresh the cache
 			caseIdHistory.remove(caseId);
 		} else {
@@ -56,7 +60,7 @@ public class LocalConformanceTracker extends HashMap<String, LocalConformanceSta
 			}
 			// now we can perform the replay
 			LocalConformanceStatus lcs = new LocalConformanceStatus(lms);
-			currentScore = lcs.replayEvent(newEventName);
+			currentScore = lcs.replayEvent(event);
 			put(caseId, lcs);
 		}
 		// put the replayed case as first one

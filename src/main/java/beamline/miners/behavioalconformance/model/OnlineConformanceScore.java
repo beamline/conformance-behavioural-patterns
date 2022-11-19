@@ -1,5 +1,6 @@
 package beamline.miners.behavioalconformance.model;
 
+import beamline.events.BEvent;
 import beamline.models.responses.Response;
 
 /**
@@ -13,7 +14,7 @@ public class OnlineConformanceScore extends Response {
 	private Double conformance = 0d;
 	private Double completeness = 0d;
 	private Double confidence = 0d;
-	private String lastActivity = null;
+	private BEvent lastEvent = null;
 	private Double processingTime = 0d;
 	private boolean isLastObservedViolation = false;
 	
@@ -49,12 +50,12 @@ public class OnlineConformanceScore extends Response {
 		this.isLastObservedViolation = isLastObservedVilation;
 	}
 	
-	public String getLastActivity() {
-		return lastActivity;
+	public BEvent getLastEvent() {
+		return lastEvent;
 	}
 	
-	public void setLastActivity(String lastActivity) {
-		this.lastActivity = lastActivity;
+	public void setLastEvent(BEvent lastEvent) {
+		this.lastEvent = lastEvent;
 	}
 
 	public void setProcessingTime(double l) {
@@ -67,6 +68,6 @@ public class OnlineConformanceScore extends Response {
 
 	@Override
 	public String toString() {
-		return "last-activity = " + lastActivity + "; conformance = " + getConformance() + "; completeness = " + getCompleteness() + "; confidence = " + getConfidence() + "; processing-time = " + getProcessingTime();
+		return "last-case-id = " + lastEvent.getTraceName() + "; last-activity = " + lastEvent.getEventName() + "; conformance = " + getConformance() + "; completeness = " + getCompleteness() + "; confidence = " + getConfidence() + "; processing-time = " + getProcessingTime();
 	}
 }
